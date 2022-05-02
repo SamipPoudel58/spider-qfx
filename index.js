@@ -1,5 +1,7 @@
 const axios = require("axios");
-const { ToadScheduler, SimpleIntervalJob, Task } = require("toad-scheduler");
+// const { ToadScheduler, SimpleIntervalJob, Task } = require("toad-scheduler");
+const { notify } = require("./checkTheatre");
+const open = require("open");
 require("dotenv").config();
 const { SAMIP_NUMBER, TWILIO_SID, TWILIO_AUTH_TOKEN } = process.env;
 
@@ -16,8 +18,8 @@ const DATE_AND_TIME =
 
 // The movie you want to check tickets for:
 // ! Use SMALL LETTERS in movies name
-const MOVIE_NAME = "k.g.f";
-const SCAN_INTERVAL = 120; // (in seconds)
+const MOVIE_NAME = "doctor strange";
+const SCAN_INTERVAL = 300; // (in seconds)
 
 // Phone Numbers to Notify
 const numbers = [SAMIP_NUMBER];
@@ -82,35 +84,10 @@ const checkNowShowing = async () => {
       console.log(
         `✅ Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].eventID}`
       );
-      // TODO: Make a call or an SMS
 
-      if (toSMS) {
-        client.messages
-          .create({
-            to: SAMIP_NUMBER,
-            from: "+19033548195",
-            body: `Yay! Your Movie '${movieArray[i].name}' is available & its Now Showing!
-            Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].eventID}`,
-          })
-          .then((msg) => {
-            console.log(msg.sid);
-            toSMS = false;
-            console.log("SMS Sent");
-          })
-          .catch((err) => console.log(err));
-      }
-      if (toCall) {
-        client.calls
-          .create({
-            url: "http://demo.twilio.com/docs/voice.xml",
-            to: SAMIP_NUMBER,
-            from: "+19033548195",
-          })
-          .then((call) => {
-            console.log(call.sid);
-          })
-          .catch((err) => console.log(err));
-      }
+      makeSMS(`Yay! Your Movie '${movieArray[i].name}' is available & its Now Showing!
+      Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].eventID}`);
+      makeCall();
     }
   }
 };
@@ -129,36 +106,15 @@ const checkComingSoon = async () => {
         console.log(
           `✅ Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].id}`
         );
-        // TODO: Make a call or an SMS
-        if (toSMS) {
-          client.messages
-            .create({
-              to: SAMIP_NUMBER,
-              from: "+19033548195",
-              body: `Yay! Tickets for '${movieArray[i].name}' is available & its Coming Soon.
-              Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].id}`,
-            })
-            .then((msg) => {
-              console.log(msg.sid);
-              toSMS = false;
-              console.log("SMS Sent");
-            })
-            .catch((err) => console.log(err));
+        try {
+          makeSMS(`Yay! Tickets for '${movieArray[i].name}' is available & its Coming Soon.
+        Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].id}`);
+          makeCall();
+          open("https://www.qfxcinemas.com/show?eventId=7701");
+          notify();
+        } catch (err) {
+          console.log("🛑 SMS or CALL failed🛑\n", err);
         }
-        if (toCall) {
-          client.calls
-            .create({
-              url: "http://demo.twilio.com/docs/voice.xml",
-              to: SAMIP_NUMBER,
-              from: "+19033548195",
-            })
-            .then((call) => {
-              console.log(call.sid);
-            })
-            .catch((err) => console.log(err));
-        }
-
-        // process.exit();
       } else {
         console.log(
           "❌🔜 Movie is coming soon but tickets are not available yet"
@@ -173,7 +129,10 @@ const checkTickets = async () => {
   // await checkNowShowing();
 };
 
-setInterval(checkTickets, 150000);
+// For random Intervals Check: https://stackoverflow.com/questions/34656758/javascript-setinterval-with-random-time
+setInterval(checkTickets, SCAN_INTERVAL * 1000);
+
+// setInterval(checkTheatre, SCAN_INTERVAL*1000)
 
 // const scheduler = new ToadScheduler();
 
