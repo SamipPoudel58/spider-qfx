@@ -1,25 +1,21 @@
-const axios = require("axios");
-// const { ToadScheduler, SimpleIntervalJob, Task } = require("toad-scheduler");
-const { notify } = require("./checkTheatre");
-const open = require("open");
-require("dotenv").config();
+const axios = require('axios');
+const { notify } = require('./checkTheatre');
+const open = require('open');
+require('dotenv').config();
 const { SAMIP_NUMBER, TWILIO_SID, TWILIO_AUTH_TOKEN } = process.env;
 
 // Available APIS
-
-const NOW_SHOWING = "https://api.qfxcinemas.com/api/public/NowShowing";
-const COMING_SOON = "https://api.qfxcinemas.com/api/public/ComingSoon";
-
-// Not used here, but might be handy someday
-const DATE_AND_TIME =
-  "https://api.qfxcinemas.com/api/public/ShowInformation?eventId=7631&showDate=2021-11-16";
-
-//-------------------------------------------
+const NOW_SHOWING = 'https://api.qfxcinemas.com/api/public/NowShowing';
+const COMING_SOON = 'https://api.qfxcinemas.com/api/public/ComingSoon';
+const _DATE_AND_TIME =
+  'https://api.qfxcinemas.com/api/public/ShowInformation?eventId=7631&showDate=2021-11-16';
 
 // The movie you want to check tickets for:
 // ! Use SMALL LETTERS in movies name
-const MOVIE_NAME = "doctor strange";
-const SCAN_INTERVAL = 300; // (in seconds)
+const MOVIE_NAME = 'wakanda';
+const SCAN_INTERVAL = 200; // (in seconds)
+
+let unavailableCount = 0;
 
 // Phone Numbers to Notify
 const numbers = [SAMIP_NUMBER];
@@ -27,42 +23,43 @@ let toCall = true;
 let toSMS = true;
 
 // creating Twilio Client
-const client = require("twilio")(TWILIO_SID, TWILIO_AUTH_TOKEN);
+const client = require('twilio')(TWILIO_SID, TWILIO_AUTH_TOKEN);
 
 const makeCall = () => {
   if (toCall) {
-    console.log("Calling...");
+    console.log('Calling...');
 
     client.calls
       .create({
-        url: "http://demo.twilio.com/docs/voice.xml",
+        url: 'http://demo.twilio.com/docs/voice.xml',
         to: SAMIP_NUMBER,
-        from: "+19033548195",
+        from: '+19033548195',
       })
       .then((call) => console.log(call.sid))
       .catch((err) => console.log(err));
 
     toCall = false;
   } else {
-    console.log("Phone Calls are disabled. Check the 'toCall' variable!");
-    return;
+    return console.log(
+      "Phone Calls are disabled. Check the 'toCall' variable!"
+    );
   }
 };
 
 const makeSMS = (message) => {
   if (toSMS) {
-    console.log("Sending SMS...");
+    console.log('Sending SMS...');
 
     client.messages
       .create({
         to: SAMIP_NUMBER,
-        from: "+19033548195",
+        from: '+19033548195',
         body: message,
       })
       .then((msg) => {
         console.log(msg.sid);
         toSMS = false;
-        console.log("SMS Sent");
+        console.log('SMS Sent');
       })
       .catch((err) => console.log(err));
   } else {
@@ -110,14 +107,19 @@ const checkComingSoon = async () => {
           makeSMS(`Yay! Tickets for '${movieArray[i].name}' is available & its Coming Soon.
         Here is the Link: https://www.qfxcinemas.com/show?eventId=${movieArray[i].id}`);
           makeCall();
-          open("https://www.qfxcinemas.com/show?eventId=7701");
-          notify();
+          if (toSMS) {
+            open('https://www.qfxcinemas.com/show?eventId=7701');
+            notify();
+          }
         } catch (err) {
-          console.log("🛑 SMS or CALL failed🛑\n", err);
+          console.log('🛑 SMS or CALL failed🛑\n', err);
         }
       } else {
+        unavailableCount++;
         console.log(
-          "❌🔜 Movie is coming soon but tickets are not available yet"
+          '❌🔜 Movie is coming soon but tickets are not available yet (' +
+            unavailableCount +
+            ')'
         );
       }
     }
@@ -126,19 +128,10 @@ const checkComingSoon = async () => {
 
 const checkTickets = async () => {
   await checkComingSoon();
+
+  // kinda useless to check 'now showing' tbh
   // await checkNowShowing();
 };
 
 // For random Intervals Check: https://stackoverflow.com/questions/34656758/javascript-setinterval-with-random-time
 setInterval(checkTickets, SCAN_INTERVAL * 1000);
-
-// setInterval(checkTheatre, SCAN_INTERVAL*1000)
-
-// const scheduler = new ToadScheduler();
-
-// const task = new Task("simple task", () => {
-//   checkTickets();
-// });
-// const job = new SimpleIntervalJob({ seconds: SCAN_INTERVAL }, task);
-
-// scheduler.addSimpleIntervalJob(job);

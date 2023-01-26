@@ -1,6 +1,6 @@
-const axios = require("axios");
-const notifier = require("node-notifier");
-const open = require("open");
+const axios = require('axios');
+const notifier = require('node-notifier');
+const open = require('open');
 
 // types of notification:
 //1. Opens a new tab in your default browser
@@ -11,14 +11,14 @@ const TO_NOTIFY = true;
 const notify = () => {
   notifier.notify(
     {
-      title: "KGF Tickets Available",
-      message: "🥳 Yes Film available in Civil", // Absolute path (doesn't work on balloons)
+      title: 'Tickets Available',
+      message: '🥳 Yes Film available in Civil', // Absolute path (doesn't work on balloons)
       sound: true, // Only Notification Center or Windows Toasters
       wait: true, // Wait with callback, until user action is taken against notification, does not apply to Windows Toasters as they always wait or notify-send as it does not support the wait option
     },
     function (err, response, metadata) {
       if (err) {
-        console.log("Failed to create windows notification");
+        console.log('Failed to create windows notification');
       }
     }
   );
@@ -27,30 +27,29 @@ const notify = () => {
 const checkTheatre = () => {
   axios
     .get(
-      "https://api.qfxcinemas.com/api/public/ShowInformation?eventId=7683&showDate=2022-4-16"
+      'https://api.qfxcinemas.com/api/public/ShowInformation?eventId=7751&showDate=2022-07-08'
     )
     .then((res) => res.data)
     .then((result) => {
       if (result.data.showTheatres) {
         result.data.showTheatres.forEach((theatre) => {
-          if (theatre.theatreName === "QFX Civil Mall") {
-            TO_OPEN_LINK && open("https://www.qfxcinemas.com/show?eventId=7683");
+          if (theatre.theatreName === 'QFX Civil Mall') {
+            TO_OPEN_LINK &&
+              open('https://www.qfxcinemas.com/show?eventId=7751');
             TO_NOTIFY && notify();
-            console.log("🥳🥳🥳 Yes Film available in Civil");
+            console.log('🥳🥳🥳 Yes Film available in Civil');
           } else {
             console.log(
-              "Available in ✅" + theatre.theatreName + " but not in Civil❌"
+              'Available in ✅' + theatre.theatreName + ' but not in Civil❌'
             );
           }
         });
-        console.log("---------------------");
+        console.log('---------------------');
       } else {
-        console.log("❌ No shows for this date yet!");
+        console.log('❌ No shows for this date yet!');
       }
     })
-    .catch((err) => console.error("API request failed!"));
+    .catch((err) => console.error('API request failed!'));
 };
 
-// setInterval(checkTheatre, 60000);
-
-module.exports ={checkTheatre,notify}
+module.exports = { notify };
